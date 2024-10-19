@@ -72,6 +72,7 @@ class BasicCrawlerOptions(TypedDict, Generic[TCrawlingContext]):
     concurrency_settings: NotRequired[ConcurrencySettings]
     max_request_retries: NotRequired[int]
     max_requests_per_crawl: NotRequired[int | None]
+    max_crawl_depth: NotRequired[int | None]
     max_session_rotations: NotRequired[int]
     configuration: NotRequired[Configuration]
     request_handler_timeout: NotRequired[timedelta]
@@ -107,6 +108,7 @@ class BasicCrawler(Generic[TCrawlingContext]):
         concurrency_settings: ConcurrencySettings | None = None,
         max_request_retries: int = 3,
         max_requests_per_crawl: int | None = None,
+        max_crawl_depth: int | None = None,
         max_session_rotations: int = 10,
         configuration: Configuration | None = None,
         request_handler_timeout: timedelta = timedelta(minutes=1),
@@ -133,6 +135,7 @@ class BasicCrawler(Generic[TCrawlingContext]):
                 the limit is reached. It is recommended to set this value in order to prevent infinite loops in
                 misconfigured crawlers. None means no limit. Due to concurrency_settings, the actual number of pages
                 visited may slightly exceed this value.
+            max_crawl_depth: Maximum depth of the crawl. The depth of a page is the number of clicks needed to reach
             max_session_rotations: Maximum number of session rotations per request.
                 The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by
                 the website.
@@ -140,7 +143,7 @@ class BasicCrawler(Generic[TCrawlingContext]):
             request_handler_timeout: How long is a single request handler allowed to run
             use_session_pool: Enables using the session pool for crawling
             session_pool: A preconfigured `SessionPool` instance if you wish to use non-default configuration
-            retry_on_blocked: If set to True, the crawler will try to automatically bypass any detected bot protection
+            retry_on_blocked: If set to True, the crawler will try t:o automatically bypass any detected bot protection
             proxy_configuration: A HTTP proxy configuration to be used for making requests
             statistics: A preconfigured `Statistics` instance if you wish to use non-default configuration
             event_manager: A custom `EventManager` instance if you wish to use a non-default one
@@ -167,6 +170,7 @@ class BasicCrawler(Generic[TCrawlingContext]):
 
         self._max_request_retries = max_request_retries
         self._max_requests_per_crawl = max_requests_per_crawl
+        self._max_crawl_depth = max_crawl_depth
         self._max_session_rotations = max_session_rotations
 
         self._request_provider = request_provider
@@ -788,6 +792,12 @@ class BasicCrawler(Generic[TCrawlingContext]):
         )
 
         if request is None:
+            return
+
+        if self._max_crawl_depth is not None and request.crawl_depth > self._max_crawl_depth:
+            self._logger.info(
+                f'Request with URL {request.url} has reached the maximum crawl depth of {self._max_crawl_depth}'
+            )
             return
 
         session = await self._get_session()

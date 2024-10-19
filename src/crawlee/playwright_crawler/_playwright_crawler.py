@@ -139,9 +139,11 @@ class PlaywrightCrawler(BasicCrawler[PlaywrightCrawlingContext]):
                             url = convert_to_absolute_url(context.request.url, url)
 
                         link_user_data = user_data.copy()
-
                         if label is not None:
                             link_user_data.setdefault('label', label)
+
+                        crawlee_data = link_user_data.setdefault('crawlee_data', {})
+                        crawlee_data.setdefault('crawl_depth', context.request.crawl_depth + 1)
 
                         try:
                             request = BaseRequestData.from_url(url, user_data=link_user_data)

@@ -57,6 +57,8 @@ class CrawleeRequestData(BaseModel):
 
     forefront: Annotated[bool, Field()] = False
 
+    crawl_depth: Annotated[int | None, Field()] = None
+
 
 class UserData(BaseModel, MutableMapping[str, JsonSerializable]):
     """Represents the `user_data` part of a Request.
@@ -336,6 +338,17 @@ class Request(BaseRequestData):
     @max_retries.setter
     def max_retries(self, new_max_retries: int) -> None:
         self.crawlee_data.max_retries = new_max_retries
+
+    @property
+    def crawl_depth(self) -> int:
+        """Crawlee-specific crawl depth of the request."""
+        if self.crawlee_data.crawl_depth is None:
+            self.crawlee_data.crawl_depth = 0
+        return self.crawlee_data.crawl_depth
+
+    @crawl_depth.setter
+    def crawl_depth(self, new_crawl_depth: int) -> None:
+        self.crawlee_data.crawl_depth = new_crawl_depth
 
     @property
     def session_rotation_count(self) -> int | None:
